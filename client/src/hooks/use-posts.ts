@@ -1,22 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type GenerateInput, type RefineInput } from "@shared/routes";
+import { useMutation } from "@tanstack/react-query";
+import { api, type GenerateInput, type RefineInput } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
 
-// Fetch history of posts
-export function usePosts() {
-  return useQuery({
-    queryKey: [api.posts.list.path],
-    queryFn: async () => {
-      const res = await fetch(api.posts.list.path, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch posts");
-      return api.posts.list.responses[200].parse(await res.json());
-    },
-  });
-}
-
-// Generate new post variations
 export function useGeneratePost() {
-  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
@@ -28,18 +14,12 @@ export function useGeneratePost() {
         body: JSON.stringify(validated),
         credentials: "include",
       });
-      
+
       if (!res.ok) {
-        if (res.status === 400) {
-          const error = await res.json();
-          throw new Error(error.message || "Validation failed");
-        }
-        throw new Error("Failed to generate post");
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to generate post");
       }
-      return api.posts.generate.responses[201].parse(await res.json());
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.posts.list.path] });
+      return res.json() as Promise<{ variations: string[]; tone: string; originalPrompt: string }>;
     },
     onError: (error: Error) => {
       toast({
@@ -47,13 +27,11 @@ export function useGeneratePost() {
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
 }
 
-// Refine an existing post
 export function useRefinePost() {
-  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
@@ -65,18 +43,12 @@ export function useRefinePost() {
         body: JSON.stringify(validated),
         credentials: "include",
       });
-      
+
       if (!res.ok) {
-        if (res.status === 400) {
-          const error = await res.json();
-          throw new Error(error.message || "Validation failed");
-        }
-        throw new Error("Failed to refine post");
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to refine post");
       }
-      return api.posts.refine.responses[201].parse(await res.json());
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.posts.list.path] });
+      return res.json() as Promise<{ content: string; suggestions: string }>;
     },
     onError: (error: Error) => {
       toast({
@@ -84,6 +56,6 @@ export function useRefinePost() {
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
 }

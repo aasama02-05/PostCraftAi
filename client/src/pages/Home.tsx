@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Wand2, History, Loader2, MessageSquareText, AlertCircle } from "lucide-react";
+import { Sparkles, Wand2, Loader2, MessageSquareText } from "lucide-react";
 import { Tabs } from "@/components/Tabs";
 import { CopyButton } from "@/components/CopyButton";
-import { usePosts, useGeneratePost, useRefinePost } from "@/hooks/use-posts";
-import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils";
+import { useGeneratePost, useRefinePost } from "@/hooks/use-posts";
 
 const TONES = [
   "Professional",
@@ -191,103 +189,6 @@ function RefineView() {
   );
 }
 
-function HistoryView() {
-  const { data: posts, isLoading, error } = usePosts();
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-4">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="font-medium">Loading history...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 text-red-600 p-6 rounded-2xl border border-red-100 flex items-start gap-3">
-        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-        <div>
-          <h4 className="font-bold">Failed to load history</h4>
-          <p className="text-sm mt-1 opacity-90">Please try refreshing the page.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!posts || posts.length === 0) {
-    return (
-      <div className="text-center py-20 bg-white/50 rounded-3xl border border-dashed border-slate-300">
-        <History className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-slate-700 mb-2">No history yet</h3>
-        <p className="text-slate-500">Posts you generate or refine will appear here.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {posts.map((post) => (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          key={post.id}
-          className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col space-y-4 hover:shadow-md transition-all"
-        >
-          <div className="flex flex-wrap justify-between items-start gap-4 border-b border-slate-100 pb-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <span className={cn(
-                  "px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wide",
-                  post.type === "generate" 
-                    ? "bg-blue-100 text-blue-700"
-                    : "bg-indigo-100 text-indigo-700"
-                )}>
-                  {post.type}
-                </span>
-                {post.tone && (
-                  <span className="text-sm font-medium text-slate-500 flex items-center gap-1.5">
-                    Tone: <span className="text-slate-700">{post.tone}</span>
-                  </span>
-                )}
-              </div>
-              {post.createdAt && (
-                <div className="text-xs text-slate-400 font-medium">
-                  {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-                </div>
-              )}
-            </div>
-            
-            {post.type === "refine" && post.content && (
-              <CopyButton text={post.content} />
-            )}
-          </div>
-
-          <div className="space-y-6 pt-2">
-            {post.type === "generate" && post.variations ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {post.variations.map((v, i) => (
-                  <div key={i} className="bg-slate-50 rounded-xl p-4 border border-slate-100 relative group">
-                    <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <CopyButton text={v} className="py-1 px-2 text-xs" />
-                    </div>
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Option {i + 1}</div>
-                    <div className="text-sm text-slate-700 whitespace-pre-wrap line-clamp-[10]">{v}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="whitespace-pre-wrap text-slate-700 text-[15px] leading-relaxed">
-                {post.content}
-              </div>
-            )}
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
 export default function Home() {
   const [activeTab, setActiveTab] = useState("Generate Post");
 
@@ -308,7 +209,7 @@ export default function Home() {
 
         {/* Navigation */}
         <Tabs
-          tabs={["Generate Post", "Improve Draft", "History"]}
+          tabs={["Generate Post", "Improve Draft"]}
           activeTab={activeTab}
           onChange={setActiveTab}
         />
@@ -325,7 +226,6 @@ export default function Home() {
             >
               {activeTab === "Generate Post" && <GenerateView />}
               {activeTab === "Improve Draft" && <RefineView />}
-              {activeTab === "History" && <HistoryView />}
             </motion.div>
           </AnimatePresence>
         </main>
