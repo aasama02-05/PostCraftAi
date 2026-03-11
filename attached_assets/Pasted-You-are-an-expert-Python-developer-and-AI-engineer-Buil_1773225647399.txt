@@ -1,0 +1,257 @@
+You are an expert Python developer and AI engineer.
+
+Build a complete AI project called:
+
+PostCraft AI – AI-Powered LinkedIn Post Generator for Professionals
+
+The system must be built using:
+- Python
+- Gradio (for the UI)
+- Google Gemini API (gemini-2.0-flash model)
+- Clean modular architecture
+- Modern UI styling inside Gradio
+
+The project should be production-quality, well structured, and beginner-friendly.
+
+----------------------------------------------------
+
+PROJECT OVERVIEW
+
+PostCraft AI is an AI-powered platform that converts raw ideas or bullet points into structured, engaging LinkedIn posts.
+
+Users can:
+1. Enter rough ideas or topics
+2. Generate complete LinkedIn posts
+3. Generate multiple variations
+4. Improve existing drafts
+5. Choose writing tone
+6. View post history
+
+----------------------------------------------------
+
+FEATURES TO IMPLEMENT
+
+1. AI Post Generation
+User enters:
+- topic
+- idea
+- bullet points
+
+The AI should generate:
+- well structured LinkedIn post
+- engaging hook
+- body content
+- clear message
+- call to action
+- optional hashtags
+
+Generate 3 variations of the post.
+
+----------------------------------------------------
+
+2. Post Refinement Feature
+
+User pastes an existing LinkedIn post.
+
+AI should:
+- improve clarity
+- restructure sentences
+- improve engagement
+- remove unnecessary words
+- optimize for LinkedIn readability
+
+Return:
+- improved version
+- suggestions summary
+
+----------------------------------------------------
+
+3. Tone and Style Control
+
+User should be able to choose tone:
+
+Dropdown options:
+- Professional
+- Storytelling
+- Educational
+- Informative
+- Motivational
+- Thought Leadership
+
+Prompt to Gemini should adapt based on tone.
+
+----------------------------------------------------
+
+4. Post History Management
+
+Store generated posts locally.
+
+Options:
+- View previously generated posts
+- Copy posts
+- Display timestamp
+
+Store history using:
+- JSON file or SQLite database.
+
+----------------------------------------------------
+
+TECH STACK
+
+Python
+Gradio
+Google Gemini API
+dotenv (for API keys)
+JSON or SQLite for storage
+
+----------------------------------------------------
+
+PROJECT STRUCTURE
+
+Create a clean modular structure:
+
+postcraft-ai/
+│
+├── app.py
+├── ai_engine.py
+├── prompts.py
+├── history_manager.py
+├── requirements.txt
+├── .env
+└── README.md
+
+----------------------------------------------------
+
+AI IMPLEMENTATION
+
+Use Google Gemini API.
+
+Model:
+gemini-2.0-flash
+
+Implement functions:
+
+generate_post(topic, tone)
+
+refine_post(draft)
+
+generate_variations(post)
+
+Prompt engineering should include:
+- hook
+- storytelling
+- readable spacing
+- LinkedIn formatting
+- hashtags
+
+----------------------------------------------------
+
+GRADIO UI
+
+Build a modern Gradio interface with tabs.
+
+Tab 1: Generate Post
+Input:
+- Topic textbox
+- Tone dropdown
+Button:
+Generate Post
+
+Output:
+3 generated posts
+
+----------------------------------------------------
+
+Tab 2: Improve Existing Post
+
+Input:
+- Large textbox
+
+Button:
+Refine Post
+
+Output:
+Improved version
+Suggestions
+
+----------------------------------------------------
+
+Tab 3: History
+
+Display:
+List of previous generated posts.
+
+Each entry:
+- timestamp
+- post text
+- copy button
+
+----------------------------------------------------
+
+UI DESIGN
+
+Make the interface modern and clean.
+
+Use:
+- clear headings
+- sections
+- good spacing
+- large textboxes
+- styled buttons
+
+----------------------------------------------------
+
+ENVIRONMENT VARIABLES
+
+Use .env file:
+
+GEMINI_API_KEY=YOUR_API_KEY
+
+Load using python-dotenv.
+
+----------------------------------------------------
+
+REQUIREMENTS.TXT
+
+Include:
+
+gradio
+google-generativeai
+python-dotenv
+sqlite3 or json
+
+----------------------------------------------------
+
+CODE REQUIREMENTS
+
+Code must include:
+
+- clear comments
+- modular functions
+- error handling
+- loading indicators in Gradio
+- readable formatting
+
+----------------------------------------------------
+
+OUTPUT FORMAT
+
+Provide:
+
+1. Full project folder structure
+2. Complete code for each file
+3. Installation instructions
+4. How to run the project
+5. Example prompts
+6. Clean README
+
+The final project must run using:
+
+python app.py
+
+and open a Gradio web interface.
+
+----------------------------------------------------
+
+Important:
+Write clean, well documented Python code suitable for beginners learning AI development.
