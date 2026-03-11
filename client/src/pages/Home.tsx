@@ -297,11 +297,11 @@ export default function Home() {
         {/* Header */}
         <div className="text-center space-y-4">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900">
-            LinkedIn <span className="text-gradient">Post Architect</span>
+            <span className="text-gradient">PostCraft AI</span>
           </h1>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto font-medium">
-            Create high-converting, professional posts in seconds. 
-            Start from scratch or refine your messy drafts into viral content.
+            AI-powered LinkedIn post generation. Create high-converting, professional posts in seconds. 
+            Start from scratch or refine your drafts into viral content.
           </p>
         </div>
 
