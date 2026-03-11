@@ -5,6 +5,7 @@ import { Tabs } from "@/components/Tabs";
 import { CopyButton } from "@/components/CopyButton";
 import { usePosts, useGeneratePost, useRefinePost } from "@/hooks/use-posts";
 import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const TONES = [
   "Professional",
