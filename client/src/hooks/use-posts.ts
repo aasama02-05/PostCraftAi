@@ -19,7 +19,12 @@ export function useGeneratePost() {
         const error = await res.json().catch(() => ({}));
         throw new Error(error.message || "Failed to generate post");
       }
-      return res.json() as Promise<{ variations: string[]; tone: string; originalPrompt: string }>;
+      return res.json() as Promise<{
+        variations: string[];
+        tone: string;
+        originalPrompt: string;
+        image?: string;
+      }>;
     },
     onError: (error: Error) => {
       toast({
@@ -48,7 +53,12 @@ export function useRefinePost() {
         const error = await res.json().catch(() => ({}));
         throw new Error(error.message || "Failed to refine post");
       }
-      return res.json() as Promise<{ content: string; suggestions: string }>;
+      return res.json() as Promise<{
+        content: string;
+        suggestions?: string;
+        variations?: string[];
+        image?: string;
+      }>;
     },
     onError: (error: Error) => {
       toast({

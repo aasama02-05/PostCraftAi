@@ -3,6 +3,7 @@ import type { Server } from "http";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
+import { generateImageFromText } from "./huggingface";
 
 // Use direct Gemini API with your own API key from .env
 const ai = new GoogleGenAI({
@@ -32,7 +33,18 @@ Make sure to include a good hook, engaging body, clear message, and a call to ac
         variations.push(response.text || "");
       }
 
-      res.status(201).json({ variations, tone: input.tone, originalPrompt: input.topic });
+      // Try to generate one illustrative image with no text, based on the topic and tone
+      let image: string | undefined;
+      try {
+        const imagePrompt = `Illustration for a LinkedIn post about: "${input.topic}". Tone: ${input.tone}. No text, no words, no letters in the image. Simple, clean, visually appealing.`;
+        image = await generateImageFromText(imagePrompt);
+      } catch (imageError) {
+        console.error("Image generation failed:", imageError);
+      }
+
+      res
+        .status(201)
+        .json({ variations, tone: input.tone, originalPrompt: input.topic, image });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({
@@ -49,7 +61,7 @@ Make sure to include a good hook, engaging body, clear message, and a call to ac
     try {
       const input = api.posts.refine.input.parse(req.body);
 
-      const prompt = `You are an expert LinkedIn post editor. Please improve the following draft for a LinkedIn post.
+      const prompt = `You are an expert LinkedIn post editor. Please improve the following draft for a LinkedIn post and create multiple polished variants.
 Draft:
 """
 ${input.draft}
@@ -57,8 +69,13 @@ ${input.draft}
 
 Please provide the output in the following JSON format:
 {
-  "improvedVersion": "the full improved post text here",
-  "suggestions": "a short summary of the improvements made"
+  "improvedVersion": "the best full improved post text here",
+  "suggestions": "a short summary of the improvements made",
+  "variations": [
+    "alternative improved version 1",
+    "alternative improved version 2",
+    "alternative improved version 3"
+  ]
 }
 Output only valid JSON.`;
 
@@ -68,18 +85,37 @@ Output only valid JSON.`;
       });
 
       let responseText = response.text || "{}";
-      responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
 
-      let parsed = { improvedVersion: "", suggestions: "" };
+      let parsed: {
+        improvedVersion?: string;
+        suggestions?: string;
+        variations?: string[];
+      } = {};
       try {
         parsed = JSON.parse(responseText);
       } catch (e) {
         console.error("Failed to parse refinement response:", responseText);
       }
 
+      const content = parsed.improvedVersion || responseText;
+      const suggestions = parsed.suggestions;
+      const variations = Array.isArray(parsed.variations) ? parsed.variations : [];
+
+      // Try to generate one illustrative image with no text, based on the improved content
+      let image: string | undefined;
+      try {
+        const imagePrompt = `Illustration for this LinkedIn post. No text, no words, no letters in the image. Simple, clean, visually appealing.\n\nPost:\n${content}`;
+        image = await generateImageFromText(imagePrompt);
+      } catch (imageError) {
+        console.error("Image generation failed (refine):", imageError);
+      }
+
       res.status(201).json({
-        content: parsed.improvedVersion || responseText,
-        suggestions: parsed.suggestions,
+        content,
+        suggestions,
+        variations,
+        image,
       });
     } catch (err) {
       if (err instanceof z.ZodError) {

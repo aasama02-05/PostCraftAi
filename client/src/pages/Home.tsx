@@ -85,6 +85,7 @@ function GenerateView() {
             <h3 className="text-xl font-bold text-slate-800 border-b border-slate-200 pb-4">
               ✨ Generated Variations
             </h3>
+
             <div className="grid gap-6">
               {generateMutation.data.variations?.map((variation, idx) => (
                 <motion.div
@@ -95,12 +96,33 @@ function GenerateView() {
                   className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col space-y-4 hover:shadow-md transition-shadow"
                 >
                   <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                    <span className="font-semibold text-slate-500 text-sm tracking-wider uppercase">Option {idx + 1}</span>
+                    <span className="font-semibold text-slate-500 text-sm tracking-wider uppercase">
+                      Option {idx + 1}
+                    </span>
                     <CopyButton text={variation} />
                   </div>
                   <div className="whitespace-pre-wrap text-slate-700 leading-relaxed font-sans text-[15px]">
                     {variation}
                   </div>
+                  {idx === 0 && generateMutation.data.image && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-xs font-semibold text-slate-500">
+                        AI-generated image for this post (no text overlay)
+                      </p>
+                      <img
+                        src={generateMutation.data.image}
+                        alt="AI generated visual for the post"
+                        className="w-full rounded-xl border border-slate-200 object-cover max-h-80"
+                      />
+                      <a
+                        href={generateMutation.data.image}
+                        download="postcraft-image.png"
+                        className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        Download image
+                      </a>
+                    </div>
+                  )}
                 </motion.div>
               ))}
             </div>
@@ -156,29 +178,77 @@ function RefineView() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="grid lg:grid-cols-3 gap-6"
+            className="space-y-6"
           >
-            <div className="lg:col-span-2 bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 space-y-4">
-              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-indigo-500" />
-                  Polished Post
-                </h3>
-                <CopyButton text={refineMutation.data.content} />
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                  <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-indigo-500" />
+                    Polished Post
+                  </h3>
+                  <CopyButton text={refineMutation.data.content} />
+                </div>
+                <div className="whitespace-pre-wrap text-slate-700 leading-relaxed text-[15px]">
+                  {refineMutation.data.content}
+                </div>
+
+                {refineMutation.data.image && (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-xs font-semibold text-slate-500">
+                      AI-generated image for this improved post (no text overlay)
+                    </p>
+                    <img
+                      src={refineMutation.data.image}
+                      alt="AI generated visual for the improved post"
+                      className="w-full rounded-xl border border-slate-200 object-cover max-h-80"
+                    />
+                    <a
+                      href={refineMutation.data.image}
+                      download="postcraft-refined-image.png"
+                      className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
+                      Download image
+                    </a>
+                  </div>
+                )}
               </div>
-              <div className="whitespace-pre-wrap text-slate-700 leading-relaxed text-[15px]">
-                {refineMutation.data.content}
-              </div>
+
+              {refineMutation.data.suggestions && (
+                <div className="bg-indigo-50/50 rounded-2xl p-6 border border-indigo-100 space-y-4 h-fit">
+                  <h4 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
+                    <MessageSquareText className="w-5 h-5" />
+                    Why it's better
+                  </h4>
+                  <div className="whitespace-pre-wrap text-indigo-800/80 text-sm leading-relaxed">
+                    {refineMutation.data.suggestions}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {refineMutation.data.suggestions && (
-              <div className="bg-indigo-50/50 rounded-2xl p-6 border border-indigo-100 space-y-4 h-fit">
-                <h4 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
-                  <MessageSquareText className="w-5 h-5" />
-                  Why it's better
-                </h4>
-                <div className="whitespace-pre-wrap text-indigo-800/80 text-sm leading-relaxed">
-                  {refineMutation.data.suggestions}
+            {refineMutation.data.variations && refineMutation.data.variations.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-slate-800">
+                  ✨ Alternate improved versions
+                </h3>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {refineMutation.data.variations.map((variation, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col space-y-3"
+                    >
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Option {idx + 1}
+                        </span>
+                        <CopyButton text={variation} />
+                      </div>
+                      <div className="whitespace-pre-wrap text-slate-700 text-sm leading-relaxed">
+                        {variation}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
