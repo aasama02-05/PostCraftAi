@@ -1,0 +1,10 @@
+server/replit_integrations/batch/utils.ts(98,30): error TS2339: Property 'AbortError' does not exist on type '<T>(input: (attemptNumber: number) => T | PromiseLike<T>, options?: Options | undefined) => Promise<T>'.
+server/replit_integrations/batch/utils.ts(139,30): error TS2339: Property 'AbortError' does not exist on type '<T>(input: (attemptNumber: number) => T | PromiseLike<T>, options?: Options | undefined) => Promise<T>'.
+server/replit_integrations/chat/routes.ts(29,27): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+server/replit_integrations/chat/routes.ts(57,27): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+server/replit_integrations/chat/routes.ts(69,39): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+server/replit_integrations/chat/storage.ts(2,10): error TS2305: Module '"@shared/schema"' has no exported member 'conversations'.
+server/replit_integrations/chat/storage.ts(2,25): error TS2305: Module '"@shared/schema"' has no exported member 'messages'.

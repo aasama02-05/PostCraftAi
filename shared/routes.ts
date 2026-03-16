@@ -46,6 +46,34 @@ export const api = {
         400: errorSchemas.validation,
       },
     },
+    edit: {
+      method: 'POST' as const,
+      path: '/api/posts/edit' as const,
+      input: z.object({
+        originalContent: z.string(),
+        instructions: z.string(),
+        provider: z.string(), // Added provider flag
+      }),
+      responses: {
+        201: z.object({
+          content: z.string(),
+        }),
+        400: errorSchemas.validation,
+      },
+    },
+    images: {
+      method: 'POST' as const,
+      path: '/api/posts/images/retry' as const,
+      input: z.object({
+        topic: z.string(),
+      }),
+      responses: {
+        201: z.object({
+          images: z.array(z.string()),
+        }),
+        400: errorSchemas.validation,
+      },
+    },
   },
 };
 
@@ -64,3 +92,5 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
 export type PostResponse = z.infer<typeof api.posts.list.responses[200]>[0];
 export type GenerateInput = z.infer<typeof api.posts.generate.input>;
 export type RefineInput = z.infer<typeof api.posts.refine.input>;
+export type EditInput = z.infer<typeof api.posts.edit.input>;
+export type GenerateImagesInput = z.infer<typeof api.posts.images.input>;

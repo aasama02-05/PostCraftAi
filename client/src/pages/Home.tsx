@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Wand2, Loader2, MessageSquareText } from "lucide-react";
+import { Sparkles, Wand2, Loader2, MessageSquareText, Download, X, Maximize2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { Tabs } from "@/components/Tabs";
 import { CopyButton } from "@/components/CopyButton";
-import { useGeneratePost, useRefinePost } from "@/hooks/use-posts";
+import { useGeneratePost, useRefinePost, useGenerateImages, useEditPost } from "@/hooks/use-posts";
+import * as Dialog from "@radix-ui/react-dialog";
 
 const TONES = [
   "Professional",
@@ -14,14 +15,185 @@ const TONES = [
   "Thought Leadership"
 ];
 
+function ImagePreviewModal({ image, isOpen, onClose }: { image: string | null; isOpen: boolean; onClose: () => void }) {
+  if (!image) return null;
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={onClose}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 transition-opacity" />
+        <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 outline-none">
+          <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col items-center">
+            <Dialog.Close asChild>
+              <button className="absolute -top-12 right-0 p-2 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-all">
+                <X className="w-6 h-6" />
+              </button>
+            </Dialog.Close>
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-black/50">
+              <img src={image} className="w-auto h-auto max-w-full max-h-[80vh] object-contain" alt="Preview" />
+              <div className="absolute bottom-4 right-4 animate-in fade-in slide-in-from-bottom-2">
+                <a
+                  href={image}
+                  download="postcraft-image.png"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 rounded-full shadow-lg font-medium tracking-wide transition-all"
+                >
+                  <Download className="w-4 h-4" /> Download High-Res
+                </a>
+              </div>
+            </div>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+function PostCard({ 
+  initialContent, 
+  title, 
+  provider,
+  delay = 0,
+  className = "bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col space-y-4 hover:shadow-md transition-shadow"
+}: { 
+  initialContent: string; 
+  title: React.ReactNode;
+  provider: string;
+  delay?: number;
+  className?: string;
+}) {
+  const [history, setHistory] = useState<string[]>([initialContent]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const editMutation = useEditPost();
+
+  const currentContent = history[currentIndex];
+
+  const handleEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    editMutation.mutate(
+      { originalContent: currentContent, instructions: chatInput, provider },
+      {
+        onSuccess: (data) => {
+          // Slice history up to current index + 1 (removes "future" states if they redo something different)
+          const newHistory = [...history.slice(0, currentIndex + 1), data.content];
+          setHistory(newHistory);
+          setCurrentIndex(newHistory.length - 1);
+          setChatInput("");
+          setIsEditing(false);
+        }
+      }
+    );
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      className={className}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-3">
+        <div className="font-semibold text-slate-800 text-sm tracking-wide flex items-center gap-3">
+          {title}
+          
+          {history.length > 1 && (
+            <div className="flex items-center gap-1 bg-slate-100 rounded-lg px-1.5 py-1 text-slate-500 shadow-inner ml-2">
+              <button
+                type="button"
+                onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
+                disabled={currentIndex === 0}
+                className="p-0.5 hover:bg-slate-200 hover:text-slate-800 rounded disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                title="Previous version"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-[11px] font-bold px-1 select-none">
+                {currentIndex + 1} / {history.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentIndex(Math.min(history.length - 1, currentIndex + 1))}
+                disabled={currentIndex === history.length - 1}
+                className="p-0.5 hover:bg-slate-200 hover:text-slate-800 rounded disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                title="Next version"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsEditing(!isEditing)}
+            className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm font-medium border ${isEditing ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+          >
+            <MessageSquareText className="w-4 h-4" />
+            Improve
+          </button>
+          <CopyButton text={currentContent} />
+        </div>
+      </div>
+      
+      <div className="whitespace-pre-wrap text-slate-700 leading-relaxed font-sans text-[15px]">
+        {currentContent}
+      </div>
+
+      <AnimatePresence>
+        {isEditing && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden pt-4 border-t border-slate-100 mt-2"
+          >
+            <form onSubmit={handleEdit} className="flex flex-col sm:flex-row gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300 transition-all">
+              <input
+                type="text"
+                placeholder="E.g. Make it funnier, add 3 hashtags, shorten it..."
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-sm px-2 text-slate-800 placeholder:text-slate-400"
+                autoFocus
+              />
+              <button
+                type="submit"
+                disabled={editMutation.isPending || !chatInput.trim()}
+                className="w-full sm:w-auto shrink-0 bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
+              >
+                {editMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                Edit
+              </button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 function GenerateView() {
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState(TONES[0]);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [regeneratedImages, setRegeneratedImages] = useState<string[] | null>(null);
   const generateMutation = useGeneratePost();
+  const generateImagesMutation = useGenerateImages();
+
+  const handleRegenerateImages = () => {
+    generateImagesMutation.mutate({ topic }, {
+      onSuccess: (data) => {
+        setRegeneratedImages(prev => [...(prev || generateMutation.data?.images || []), ...data.images]);
+      }
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!topic.trim()) return;
+    setRegeneratedImages(null);
     generateMutation.mutate({ topic, tone });
   };
 
@@ -87,59 +259,90 @@ function GenerateView() {
             </h3>
 
             <div className="grid gap-6">
-              {generateMutation.data.variations?.map((variation, idx) => (
-                <motion.div
+              {generateMutation.data.variations?.map((variation: any, idx) => (
+                <PostCard 
                   key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col space-y-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                    <span className="font-semibold text-slate-500 text-sm tracking-wider uppercase">
-                      Option {idx + 1}
-                    </span>
-                    <CopyButton text={variation} />
-                  </div>
-                  <div className="whitespace-pre-wrap text-slate-700 leading-relaxed font-sans text-[15px]">
-                    {variation}
-                  </div>
-                  {idx === 0 && generateMutation.data.image && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-xs font-semibold text-slate-500">
-                        AI-generated image for this post (no text overlay)
-                      </p>
-                      <img
-                        src={generateMutation.data.image}
-                        alt="AI generated visual for the post"
-                        className="w-full rounded-xl border border-slate-200 object-cover max-h-80"
-                      />
-                      <a
-                        href={generateMutation.data.image}
-                        download="postcraft-image.png"
-                        className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
-                      >
-                        Download image
-                      </a>
-                    </div>
-                  )}
-                </motion.div>
+                  initialContent={typeof variation === 'string' ? variation : variation.content}
+                  provider={typeof variation === 'string' ? 'unknown' : variation.provider}
+                  title={`OPTION ${idx + 1}`}
+                  delay={idx * 0.1}
+                />
               ))}
             </div>
+
+            {generateMutation.data.images && generateMutation.data.images.length > 0 && (
+              <div className="mt-8 space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-indigo-500" />
+                    AI-Generated Visuals
+                  </p>
+                  <button
+                    onClick={handleRegenerateImages}
+                    disabled={generateImagesMutation.isPending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-full transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${generateImagesMutation.isPending ? 'animate-spin' : ''}`} />
+                    {generateImagesMutation.isPending ? 'Improving...' : 'Improve Images'}
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  {(regeneratedImages || generateMutation.data.images).map((img, i) => (
+                    <div key={i} className="group relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-50 cursor-pointer shadow-sm hover:shadow-md transition-all" onClick={() => setPreviewImage(img)}>
+                      <img
+                        src={img}
+                        alt={`Generated visual ${i + 1}`}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <Maximize2 className="w-8 h-8 text-white drop-shadow-md" />
+                      </div>
+                      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0">
+                          <a
+                            href={img}
+                            download={`postcraft-image-${i + 1}.png`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center justify-center p-2 bg-white/90 hover:bg-white text-slate-800 rounded-full shadow-lg transition-colors"
+                            title="Download"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
+      <ImagePreviewModal image={previewImage} isOpen={!!previewImage} onClose={() => setPreviewImage(null)} />
     </div>
   );
 }
 
 function RefineView() {
   const [draft, setDraft] = useState("");
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [regeneratedImages, setRegeneratedImages] = useState<string[] | null>(null);
   const refineMutation = useRefinePost();
+  const generateImagesMutation = useGenerateImages();
+
+  const handleRegenerateImages = () => {
+    // For refinement, we generate images based on the polished content if available,
+    // otherwise fallback to draft.
+    const contentToUse = refineMutation.data?.content || draft;
+    generateImagesMutation.mutate({ topic: contentToUse }, {
+      onSuccess: (data) => {
+        setRegeneratedImages(prev => [...(prev || refineMutation.data?.images || []), ...data.images]);
+      }
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!draft.trim()) return;
+    setRegeneratedImages(null);
     refineMutation.mutate({ draft });
   };
 
@@ -180,72 +383,62 @@ function RefineView() {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
-            <div className="grid lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-                  <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-indigo-500" />
-                    Polished Post
-                  </h3>
-                  <CopyButton text={refineMutation.data.content} />
-                </div>
-                <div className="whitespace-pre-wrap text-slate-700 leading-relaxed text-[15px]">
-                  {refineMutation.data.content}
-                </div>
-
-                {refineMutation.data.image && (
-                  <div className="mt-4 space-y-2">
-                    <p className="text-xs font-semibold text-slate-500">
-                      AI-generated image for this improved post (no text overlay)
-                    </p>
-                    <img
-                      src={refineMutation.data.image}
-                      alt="AI generated visual for the improved post"
-                      className="w-full rounded-xl border border-slate-200 object-cover max-h-80"
-                    />
-                    <a
-                      href={refineMutation.data.image}
-                      download="postcraft-refined-image.png"
-                      className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
-                    >
-                      Download image
-                    </a>
-                  </div>
-                )}
-              </div>
-
-              {refineMutation.data.suggestions && (
-                <div className="bg-indigo-50/50 rounded-2xl p-6 border border-indigo-100 space-y-4 h-fit">
-                  <h4 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
-                    <MessageSquareText className="w-5 h-5" />
-                    Why it's better
-                  </h4>
-                  <div className="whitespace-pre-wrap text-indigo-800/80 text-sm leading-relaxed">
-                    {refineMutation.data.suggestions}
-                  </div>
-                </div>
-              )}
-            </div>
-
             {refineMutation.data.variations && refineMutation.data.variations.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-slate-800">
-                  ✨ Alternate improved versions
+              <div className="space-y-6">
+                <h3 className="text-xl font-bold text-slate-800 border-b border-slate-200 pb-4">
+                  ✨ Improved Variations
                 </h3>
-                <div className="grid gap-4 md:grid-cols-3">
-                  {refineMutation.data.variations.map((variation, idx) => (
-                    <div
+                <div className="grid gap-6 md:grid-cols-3">
+                  {refineMutation.data.variations.map((variation: any, idx: number) => (
+                    <PostCard
                       key={idx}
-                      className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col space-y-3"
-                    >
-                      <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          Option {idx + 1}
-                        </span>
-                        <CopyButton text={variation} />
+                      initialContent={typeof variation === 'string' ? variation : variation.content}
+                      provider={typeof variation === 'string' ? 'unknown' : variation.provider}
+                      title={`OPTION ${idx + 1}`}
+                      className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col space-y-4 hover:shadow-md transition-shadow"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {refineMutation.data.images && refineMutation.data.images.length > 0 && (
+              <div className="mt-8 space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-indigo-500" />
+                    AI-Generated Visuals
+                  </p>
+                  <button
+                    onClick={handleRegenerateImages}
+                    disabled={generateImagesMutation.isPending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-full transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${generateImagesMutation.isPending ? 'animate-spin' : ''}`} />
+                    {generateImagesMutation.isPending ? 'Improving...' : 'Improve Images'}
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  {(regeneratedImages || refineMutation.data.images).map((img, i) => (
+                    <div key={i} className="group relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-50 cursor-pointer shadow-sm hover:shadow-md transition-all" onClick={() => setPreviewImage(img)}>
+                      <img
+                        src={img}
+                        alt={`Generated visual ${i + 1}`}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <Maximize2 className="w-8 h-8 text-white drop-shadow-md" />
                       </div>
-                      <div className="whitespace-pre-wrap text-slate-700 text-sm leading-relaxed">
-                        {variation}
+                      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0">
+                          <a
+                            href={img}
+                            download={`postcraft-refined-img-${i + 1}.png`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center justify-center p-2 bg-white/90 hover:bg-white text-slate-800 rounded-full shadow-lg transition-colors"
+                            title="Download"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
                       </div>
                     </div>
                   ))}
@@ -255,6 +448,7 @@ function RefineView() {
           </motion.div>
         )}
       </AnimatePresence>
+      <ImagePreviewModal image={previewImage} isOpen={!!previewImage} onClose={() => setPreviewImage(null)} />
     </div>
   );
 }
@@ -286,18 +480,12 @@ export default function Home() {
 
         {/* Content Area */}
         <main className="min-h-[500px]">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {activeTab === "Generate Post" && <GenerateView />}
-              {activeTab === "Improve Draft" && <RefineView />}
-            </motion.div>
-          </AnimatePresence>
+          <div className={activeTab === "Generate Post" ? "block animate-in fade-in slide-in-from-bottom-2 duration-500" : "hidden"}>
+            <GenerateView />
+          </div>
+          <div className={activeTab === "Improve Draft" ? "block animate-in fade-in slide-in-from-bottom-2 duration-500" : "hidden"}>
+            <RefineView />
+          </div>
         </main>
       </div>
     </div>

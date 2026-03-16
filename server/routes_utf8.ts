@@ -1,4 +1,4 @@
-import type { Express } from "express";
+﻿import type { Express } from "express";
 import type { Server } from "http";
 import { api } from "@shared/routes";
 import { z } from "zod";
@@ -250,7 +250,7 @@ Output only valid JSON.`;
 
       res.status(201).json({
         content: variations[0]?.content || "Failed to refine.", // Provide the first *refined* post as default Polished view
-        suggestions: "Improved hook, structure, and readability across multiple AI models.",
+        suggestions: "PROVE_CODE_VERSION_1",
         variations,
         images,
       });
