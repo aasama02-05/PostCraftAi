@@ -66,6 +66,7 @@ function PostCard({
   const [isEditing, setIsEditing] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const editMutation = useEditPost();
+  const regenMutation = useEditPost();
 
   const currentContent = history[currentIndex];
 
@@ -82,6 +83,23 @@ function PostCard({
           setCurrentIndex(newHistory.length - 1);
           setChatInput("");
           setIsEditing(false);
+        }
+      }
+    );
+  };
+
+  const handleRedo = () => {
+    regenMutation.mutate(
+      { 
+        originalContent: currentContent, 
+        instructions: "Rewrite this LinkedIn post with fresh new phrasing, a different hook, and a unique angle. Keep the same core message but make it completely different from the original.",
+        provider 
+      },
+      {
+        onSuccess: (data) => {
+          const newHistory = [...history.slice(0, currentIndex + 1), data.content];
+          setHistory(newHistory);
+          setCurrentIndex(newHistory.length - 1);
         }
       }
     );
@@ -131,7 +149,16 @@ function PostCard({
             className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm font-medium border ${isEditing ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
           >
             <MessageSquareText className="w-4 h-4" />
-            Improve
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={handleRedo}
+            disabled={regenMutation.isPending}
+            className="px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm font-medium border bg-white text-slate-600 border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 disabled:opacity-50"
+            title="Regenerate with a fresh take"
+          >
+            <RefreshCw className={`w-4 h-4 ${regenMutation.isPending ? 'animate-spin' : ''}`} />
           </button>
           <CopyButton text={currentContent} />
         </div>
@@ -388,7 +415,7 @@ function RefineView() {
                 <h3 className="text-xl font-bold text-slate-800 border-b border-slate-200 pb-4">
                   ✨ Improved Variations
                 </h3>
-                <div className="grid gap-6 md:grid-cols-3">
+                <div className="flex flex-col gap-6">
                   {refineMutation.data.variations.map((variation: any, idx: number) => (
                     <PostCard
                       key={idx}
