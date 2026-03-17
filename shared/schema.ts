@@ -8,7 +8,7 @@ export const posts = pgTable("posts", {
   originalDraft: text("original_draft"),
   tone: text("tone"),
   content: text("content").notNull(),
-  variations: jsonb("variations").$type<{ content: string, provider: string }[]>(), // Array of 3 objects
+  variations: jsonb("variations").$type<{ content: string, provider: string, imageUrl?: string }[]>(), // Array of 3 objects
   suggestions: text("suggestions"),
   type: text("type").notNull(), // 'generate' or 'refine'
   createdAt: timestamp("created_at").defaultNow(),

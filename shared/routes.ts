@@ -66,6 +66,7 @@ export const api = {
       path: '/api/posts/images/retry' as const,
       input: z.object({
         topic: z.string(),
+        isImprovement: z.boolean().optional(),
       }),
       responses: {
         201: z.object({

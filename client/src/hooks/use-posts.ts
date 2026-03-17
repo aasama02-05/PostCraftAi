@@ -105,7 +105,7 @@ export function useGenerateImages() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: { topic: string }) => {
+    mutationFn: async (data: { topic: string; isImprovement?: boolean }) => {
       const validated = api.posts.images.input.parse(data);
       const res = await fetch(api.posts.images.path, {
         method: api.posts.images.method,

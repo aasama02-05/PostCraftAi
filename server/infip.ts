@@ -4,7 +4,7 @@ export async function generateImageFromText(prompt: string): Promise<string[]> {
 
   const payload = {
     model: "img4",
-    prompt: `${prompt}. ABSOLUTELY NO TEXT, NO FONTS, NO LETTERS, NO ALPHABETS, NO TYPOGRAPHY. The image must be completely textless.`,
+    prompt: `${prompt}. ABSOLUTELY NO TEXT, NO FONTS, NO LETTERS, NO ALPHABETS, NO TYPOGRAPHY, NO LABELS, NO SIGNAGE, NO WATERMARKS. The image must be 100% text-free and purely visual.`,
     n: 3,
     size: "1024x1024",
     response_format: "url"

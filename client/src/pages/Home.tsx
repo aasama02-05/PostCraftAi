@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Wand2, Loader2, MessageSquareText, Download, X, Maximize2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sparkles, Wand2, Loader2, MessageSquareText, Download, X, Maximize2, RefreshCw, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
 import { Tabs } from "@/components/Tabs";
 import { CopyButton } from "@/components/CopyButton";
 import { useGeneratePost, useRefinePost, useGenerateImages, useEditPost } from "@/hooks/use-posts";
@@ -50,23 +51,35 @@ function ImagePreviewModal({ image, isOpen, onClose }: { image: string | null; i
 
 function PostCard({ 
   initialContent, 
+  initialImageUrl,
+  originalTopic,
   title, 
   provider,
   delay = 0,
+  onImageClick,
   className = "bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col space-y-4 hover:shadow-md transition-shadow"
 }: { 
   initialContent: string; 
+  initialImageUrl?: string;
+  originalTopic: string;
   title: React.ReactNode;
   provider: string;
   delay?: number;
+  onImageClick?: (url: string) => void;
   className?: string;
 }) {
   const [history, setHistory] = useState<string[]>([initialContent]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [imageHistory, setImageHistory] = useState<string[]>(initialImageUrl ? [initialImageUrl] : []);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const editMutation = useEditPost();
   const regenMutation = useEditPost();
+  const generateImagesMutation = useGenerateImages();
+  const { toast } = useToast();
+
+  const imageUrl = imageHistory[currentImageIndex];
 
   const currentContent = history[currentIndex];
 
@@ -103,6 +116,39 @@ function PostCard({
         }
       }
     );
+  };
+
+  const handleShare = () => {
+    // 100% Reliable: Copy to clipboard first
+    navigator.clipboard.writeText(currentContent).catch(err => {
+      console.error("Clipboard copy failed:", err);
+    });
+
+    toast({
+      title: "Opening LinkedIn Feed",
+      description: "We've copied the full post to your clipboard. Just paste (Ctrl+V) it onto your LinkedIn feed!",
+      className: "bg-blue-50 border-blue-200 text-blue-900",
+    });
+
+    const encodedText = encodeURIComponent(currentContent.substring(0, 1000)); // Still pre-fill what we can
+    const url = `https://www.linkedin.com/feed/?shareActive=true&text=${encodedText}`;
+    setTimeout(() => {
+      window.open(url, '_blank');
+    }, 1500); // Give user a moment to read the toast
+  };
+
+  const handleImproveImage = () => {
+    generateImagesMutation.mutate({ 
+      topic: originalTopic,
+      isImprovement: imageHistory.length > 0 
+    }, {
+      onSuccess: (data) => {
+        if (data.images && data.images.length > 0) {
+          setImageHistory(prev => [...prev, data.images[0]]);
+          setCurrentImageIndex(imageHistory.length); // length will be the new index
+        }
+      }
+    });
   };
 
   return (
@@ -145,6 +191,15 @@ function PostCard({
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
+            onClick={handleShare}
+            className="px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm font-medium border bg-white text-slate-600 border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
+            title="Share directly to LinkedIn"
+          >
+            <Share2 className="w-4 h-4" />
+            Share
+          </button>
+          <button
+            type="button"
             onClick={() => setIsEditing(!isEditing)}
             className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm font-medium border ${isEditing ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
           >
@@ -164,8 +219,85 @@ function PostCard({
         </div>
       </div>
       
-      <div className="whitespace-pre-wrap text-slate-700 leading-relaxed font-sans text-[15px]">
-        {currentContent}
+      <div className="flex flex-col gap-6">
+        <div className="whitespace-pre-wrap text-slate-700 leading-relaxed font-sans text-[15px]">
+          {currentContent}
+        </div>
+        
+        {imageUrl && (
+          <div className="w-full space-y-3">
+            <div 
+              className="group relative w-full aspect-[16/9] md:aspect-[21/9] rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-sm transition-all"
+            >
+              <img
+                src={imageUrl}
+                alt="Post visual"
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+              
+              {/* Image Navigation Overlay */}
+              {imageHistory.length > 1 && (
+                <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => setCurrentImageIndex(prev => Math.max(0, prev - 1))}
+                    disabled={currentImageIndex === 0}
+                    className="p-2 bg-white/90 hover:bg-white text-slate-800 rounded-full shadow-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentImageIndex(prev => Math.min(imageHistory.length - 1, prev + 1))}
+                    disabled={currentImageIndex === imageHistory.length - 1}
+                    className="p-2 bg-white/90 hover:bg-white text-slate-800 rounded-full shadow-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Counter Overlay */}
+              {imageHistory.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold rounded-full border border-white/20 select-none">
+                  IMAGE {currentImageIndex + 1} / {imageHistory.length}
+                </div>
+              )}
+
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                <Maximize2 className="w-8 h-8 text-white drop-shadow-md" />
+              </div>
+
+              {/* Action Buttons Overlay */}
+              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                   onClick={() => onImageClick?.(imageUrl)}
+                   className="p-2 bg-white/90 hover:bg-white text-slate-800 rounded-full shadow-lg transition-colors"
+                >
+                   <Maximize2 className="w-4 h-4" />
+                </button>
+                <a
+                  href={imageUrl}
+                  download="postcraft-image.png"
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-2 bg-white/90 hover:bg-white text-slate-800 rounded-full shadow-lg transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+            
+            <div className="flex justify-center">
+               <button
+                  type="button"
+                  onClick={handleImproveImage}
+                  disabled={generateImagesMutation.isPending}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-all disabled:opacity-50 border border-indigo-100"
+                >
+                  <RefreshCw className={`w-4 h-4 ${generateImagesMutation.isPending ? 'animate-spin' : ''}`} />
+                  {generateImagesMutation.isPending ? 'Generating New View...' : 'Improve Image / Try Different Style'}
+                </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
@@ -205,22 +337,11 @@ function GenerateView() {
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState(TONES[0]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [regeneratedImages, setRegeneratedImages] = useState<string[] | null>(null);
   const generateMutation = useGeneratePost();
-  const generateImagesMutation = useGenerateImages();
-
-  const handleRegenerateImages = () => {
-    generateImagesMutation.mutate({ topic }, {
-      onSuccess: (data) => {
-        setRegeneratedImages(prev => [...(prev || generateMutation.data?.images || []), ...data.images]);
-      }
-    });
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!topic.trim()) return;
-    setRegeneratedImages(null);
     generateMutation.mutate({ topic, tone });
   };
 
@@ -288,58 +409,19 @@ function GenerateView() {
             <div className="grid gap-6">
               {generateMutation.data.variations?.map((variation: any, idx) => (
                 <PostCard 
-                  key={idx}
-                  initialContent={typeof variation === 'string' ? variation : variation.content}
-                  provider={typeof variation === 'string' ? 'unknown' : variation.provider}
-                  title={`OPTION ${idx + 1}`}
-                  delay={idx * 0.1}
+                   key={idx}
+                   originalTopic={topic}
+                   initialContent={typeof variation === 'string' ? variation : variation.content}
+                   initialImageUrl={typeof variation === 'string' ? undefined : variation.imageUrl}
+                   provider={typeof variation === 'string' ? 'unknown' : variation.provider}
+                   title={`OPTION ${idx + 1}`}
+                   delay={idx * 0.1}
+                   onImageClick={setPreviewImage}
                 />
               ))}
             </div>
 
-            {generateMutation.data.images && generateMutation.data.images.length > 0 && (
-              <div className="mt-8 space-y-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-indigo-500" />
-                    AI-Generated Visuals
-                  </p>
-                  <button
-                    onClick={handleRegenerateImages}
-                    disabled={generateImagesMutation.isPending}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-full transition-colors disabled:opacity-50"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${generateImagesMutation.isPending ? 'animate-spin' : ''}`} />
-                    {generateImagesMutation.isPending ? 'Improving...' : 'Improve Images'}
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  {(regeneratedImages || generateMutation.data.images).map((img, i) => (
-                    <div key={i} className="group relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-50 cursor-pointer shadow-sm hover:shadow-md transition-all" onClick={() => setPreviewImage(img)}>
-                      <img
-                        src={img}
-                        alt={`Generated visual ${i + 1}`}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                        <Maximize2 className="w-8 h-8 text-white drop-shadow-md" />
-                      </div>
-                      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0">
-                          <a
-                            href={img}
-                            download={`postcraft-image-${i + 1}.png`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center justify-center p-2 bg-white/90 hover:bg-white text-slate-800 rounded-full shadow-lg transition-colors"
-                            title="Download"
-                          >
-                            <Download className="w-4 h-4" />
-                          </a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+
           </motion.div>
         )}
       </AnimatePresence>
@@ -351,25 +433,11 @@ function GenerateView() {
 function RefineView() {
   const [draft, setDraft] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [regeneratedImages, setRegeneratedImages] = useState<string[] | null>(null);
   const refineMutation = useRefinePost();
-  const generateImagesMutation = useGenerateImages();
-
-  const handleRegenerateImages = () => {
-    // For refinement, we generate images based on the polished content if available,
-    // otherwise fallback to draft.
-    const contentToUse = refineMutation.data?.content || draft;
-    generateImagesMutation.mutate({ topic: contentToUse }, {
-      onSuccess: (data) => {
-        setRegeneratedImages(prev => [...(prev || refineMutation.data?.images || []), ...data.images]);
-      }
-    });
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!draft.trim()) return;
-    setRegeneratedImages(null);
     refineMutation.mutate({ draft });
   };
 
@@ -419,9 +487,12 @@ function RefineView() {
                   {refineMutation.data.variations.map((variation: any, idx: number) => (
                     <PostCard
                       key={idx}
+                      originalTopic={draft}
                       initialContent={typeof variation === 'string' ? variation : variation.content}
+                      initialImageUrl={typeof variation === 'string' ? undefined : variation.imageUrl}
                       provider={typeof variation === 'string' ? 'unknown' : variation.provider}
                       title={`OPTION ${idx + 1}`}
+                      onImageClick={setPreviewImage}
                       className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col space-y-4 hover:shadow-md transition-shadow"
                     />
                   ))}
@@ -429,49 +500,7 @@ function RefineView() {
               </div>
             )}
 
-            {refineMutation.data.images && refineMutation.data.images.length > 0 && (
-              <div className="mt-8 space-y-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-indigo-500" />
-                    AI-Generated Visuals
-                  </p>
-                  <button
-                    onClick={handleRegenerateImages}
-                    disabled={generateImagesMutation.isPending}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-full transition-colors disabled:opacity-50"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${generateImagesMutation.isPending ? 'animate-spin' : ''}`} />
-                    {generateImagesMutation.isPending ? 'Improving...' : 'Improve Images'}
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  {(regeneratedImages || refineMutation.data.images).map((img, i) => (
-                    <div key={i} className="group relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-50 cursor-pointer shadow-sm hover:shadow-md transition-all" onClick={() => setPreviewImage(img)}>
-                      <img
-                        src={img}
-                        alt={`Generated visual ${i + 1}`}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                        <Maximize2 className="w-8 h-8 text-white drop-shadow-md" />
-                      </div>
-                      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0">
-                          <a
-                            href={img}
-                            download={`postcraft-refined-img-${i + 1}.png`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center justify-center p-2 bg-white/90 hover:bg-white text-slate-800 rounded-full shadow-lg transition-colors"
-                            title="Download"
-                          >
-                            <Download className="w-4 h-4" />
-                          </a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+
           </motion.div>
         )}
       </AnimatePresence>
